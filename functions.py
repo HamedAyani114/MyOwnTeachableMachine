@@ -1,77 +1,77 @@
-import tensorflow as tf
-from keras import layers, models
-from keras.utils import load_img, img_to_array, array_to_img, to_categorical
-from keras.preprocessing.image import ImageDataGenerator
-from keras.applications import MobileNetV2
-import base64
 import keras
-
+from keras import layers
+from keras.utils import load_img, img_to_array, to_categorical
 
 import streamlit as st
 import numpy as np
-from PIL import Image
-from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
-import matplotlib.pyplot as plt
+from sklearn.preprocessing import LabelEncoder
+from keras.callbacks import EarlyStopping
+
+le = LabelEncoder()
 
 
-def getLabelAndImagesArray():
-    # Buat simpan informasi label yang sudah dikonversi ke Angka
-    st.session_state.label_data = {}
-    labels_data = []
-    images_data = []
-    all_sessions = list(st.session_state)
-    class_name_sessions = []
-    images_sessions = []
-    for session in all_sessions:
-        if "data_class_name_" in session:
-            class_name_sessions.append(session)
-        elif "data_image_samples_" in session:
-            images_sessions.append(session)
+def get_ImagesClassForm():
+    session_input = list(st.session_state)
 
-    class_name_sessions_sorted = sorted(class_name_sessions)
-    images_sessions_sorted = sorted(images_sessions)
+    key_class_input = []
+    key_images_input = []
+    for input in session_input:
+        if "class_input" in input:
+            key_class_input.append(input)
+        elif "image_input" in input:
+            key_images_input.append(input)
+    # st.write(key_class_input)
+    # st.write(key_images_input)
 
-    label_number = 0
-    for class_name_session, images_session in zip(
-        class_name_sessions_sorted, images_sessions_sorted
-    ):
-        class_name = st.session_state[class_name_session]
-        st.session_state.label_data[label_number] = class_name
-        for image_session in st.session_state[images_session]:
-            # Add Label
-            labels_data.append(label_number)
+    st.session_state.input_kelas = []
+    data_images = []
+    class_images = []
+
+    for data_img, cls_img in zip(key_images_input, key_class_input):
+        kelas = st.session_state[cls_img]
+        image = st.session_state[data_img]
+        st.session_state.input_kelas.append(kelas)
+        # st.write(st.session_state[class_img])
+
+        for img_input in image:
+            # Add class
+            class_images.append(kelas)
             # Add Image
-            img = load_img(image_session, target_size=(256, 256))
-            img_arr = img_to_array(img)
-            images_data.append(img_arr)
-        label_number += 1
+            img = load_img(img_input, target_size=(256, 256))
+            data_images.append(img_to_array(img))
+
     # Di acak agar proses training maksimal
-    images_data, labels_data = shuffle(images_data, labels_data)
-    return np.array(images_data), np.array(labels_data)
+    X, y = shuffle(data_images, class_images)
+    y = le.fit_transform(y)
 
-
-st.cache(suppress_st_warning=True)
+    return np.array(X), np.array(y)
 
 
 def trainingModel():
-    # Hyperparams
-    epochs = st.session_state.hyperparameter["epochs"]
-    batch_size = st.session_state.hyperparameter["batch_size"]
+    # tuning parameter
+    epochs = st.session_state.epochs_input
+    batch_size = st.session_state.batch_size_input
+    # st.write(epochs, batch_size)
 
-    # Data Input
-    images_data, labels_data = getLabelAndImagesArray()
-    num_label = len(np.unique(labels_data))
+    # data input
+    X_train, y_train = get_ImagesClassForm()
+    # num_label = len(np.unique(labels_data))
 
-    # One-Hot Encoding Labels Data
-    labels_data = to_categorical(labels_data, num_label)
+    # one hot encoding
+    y_train = to_categorical(y_train)
+    # st.write(len(labels_data[0]))
 
     # Model CNN
     model = keras.Sequential()
 
     model.add(
         layers.Conv2D(
-            32, (3, 3), activation="relu", padding="SAME", input_shape=(256, 256, 3)
+            32,
+            (3, 3),
+            activation="relu",
+            padding="SAME",
+            input_shape=X_train[0].shape,
         )
     )
     model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=2, padding="SAME"))
@@ -80,32 +80,37 @@ def trainingModel():
     model.add(layers.Conv2D(64, (3, 3), activation="relu", padding="SAME"))
     model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=2, padding="SAME"))
     model.add(layers.Conv2D(32, (3, 3), activation="relu", padding="SAME"))
-    # model.add(layers.MaxPooling2D(pool_size=(2,2),strides=2, padding='SAME'))
-    # model.add(layers.Conv2D(32, (3, 3), activation='relu', padding='SAME'))
-    # model.add(layers.MaxPooling2D(pool_size=(2,2),strides=2, padding='SAME'))
 
     model.add(layers.Flatten())
-    model.add(layers.Dense(64, activation="relu"))
-    model.add(layers.Dense(2, activation="softmax"))
+    model.add(layers.Dense(128, activation="relu"))
+    model.add(layers.Dense(len(y_train[0]), activation="softmax"))
 
     # Compile model
     model.compile(
         optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"]
     )
-    # model.compile(optimizer='adam', loss='cross_', metrics=['accuracy'])
+    early_stop = EarlyStopping(monitor="loss", patience=2, min_delta=0.01)
+    model.fit(
+        X_train,
+        y_train,
+        epochs=epochs,
+        batch_size=batch_size,
+        callbacks=[early_stop],
+    )
 
-    model.fit(images_data, labels_data, epochs=epochs, batch_size=batch_size)
-
-    # st.session_state.cm_results = cm_results
     st.session_state.isModelTrained = True
-    model.save("simple_teachable_machine_model_trained.h5")
+    str_class = ""
+    for i in st.session_state.input_kelas:
+        str_class += i + "-"
+    model.save("model/teachable_machine_model_%s.h5" % (str_class))
     return model
 
 
-def getPredictedImage(model):
+def get_ImagePredict(model):
     img = load_img(st.session_state.data_image_predict, target_size=(256, 256))
-    img_arr = img_to_array(img)[np.newaxis, ...]
-    result = model.predict(img_arr)
+    X_test = np.array([img_to_array(img)])
+    result = model.predict(X_test)
+    # st.write(result)
     return result
 
 
@@ -119,7 +124,11 @@ def predictModel(model):
         "Add image to predict",
         accept_multiple_files=False,
         key="data_image_predict",
-        type=["jpg", "jpeg", "png", "bmp"],
+        type=[
+            "jpg",
+            "jpeg",
+            "png",
+        ],
     )
     btn_predict_image = st.button("Predict", type="primary")
     if btn_predict_image:
@@ -127,12 +136,24 @@ def predictModel(model):
             st.markdown("<h4>Image Predict</h4>", unsafe_allow_html=True)
             st.image(image_predict)
             st.markdown("<h4>Results</h4>", unsafe_allow_html=True)
-            result = getPredictedImage(model)
-            for probability, label in zip(
-                result[0], list(st.session_state.label_data.values())
+
+            # st.write("Image Predict: ")
+            result = get_ImagePredict(model)
+            # st.write(result)
+            y_pred = np.argmax(result, axis=1)
+            # st.write(y_pred)
+            # st.text((st.session_state.input_kelas))
+            str_class = st.session_state.input_kelas[y_pred[0]]
+            # st.write("Gambar ini termasuk ke dalam kelas: %s" % (str_class))
+            st.write(
+                "Gambar ini termasuk ke dalam kelas: %s - Probabilitas : %.3f"
+                % (str_class, result[0][y_pred] * 100)
+            )
+            for probability, kelas in zip(
+                result[0], list(st.session_state.input_kelas)
             ):
                 st.write(
-                    "Kelas: %s - Probabilitas : %.3f " % (label, probability * 100)
+                    "Kelas: %s - Probabilitas : %.3f " % (kelas, probability * 100)
                 )
         else:
-            st.warning("Fill the image first", icon="⚠️")
+            st.warning("Masukkan Gambar untuk prediksi", icon="⚠️")

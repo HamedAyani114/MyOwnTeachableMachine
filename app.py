@@ -1,145 +1,148 @@
 import streamlit as st
 import numpy as np
 import functions as f
-import tensorflow as tf
+import keras
+
 
 # TITLE
 st.markdown(
-    "<h1 style='text-align:center'>Simple Teachable Machine, Try it! 😉</h1>",
+    "<h1 style='text-align:center'>Teachable Machine</h1>",
     unsafe_allow_html=True,
 )
 st.markdown(
-    "<h4 style='text-align:center'>(Image Classification)</h4>", unsafe_allow_html=True
+    "<h4 style='text-align:center'>Image Classification</h4>", unsafe_allow_html=True
 )
-
-# Set JSON Hyperparameter
-st.session_state.hyperparameter = {}
-
-
-def btnTrainingClicked():
-    st.session_state.complete_data = isCompleteData()
-
-
-def isCompleteData():
-    all_sessions = list(st.session_state)
-    image_sessions = []
-    class_name_sessions = []
-    for session in all_sessions:
-        if "data_image_samples_" in session:
-            image_sessions.append(session)
-        elif "data_class_name_" in session:
-            class_name_sessions.append(session)
-
-    # Image Checking
-    for image_session in image_sessions:
-        if st.session_state[image_session] == []:
-            st.session_state.complete_data = False
-            return False
-    # Class Name Checking
-    for class_name_session in class_name_sessions:
-        if st.session_state[class_name_session] == "":
-            st.session_state.complete_data = False
-            return False
-
-    st.session_state.complete_data = True
-    return st.session_state.complete_data
-
-
-def isUniqueClassName():
-    isUnique = False
-    all_sessions = list(st.session_state)
-    class_name_sessions = []
-    class_name_values = []
-    for session in all_sessions:
-        if "data_class_name_" in session:
-            class_name_sessions.append(session)
-    # Add Values Classname to List
-    for class_name_session in class_name_sessions:
-        class_name_values.append(st.session_state[class_name_session])
-    # Unique Class Name Checking
-    class_name_values = np.array(class_name_values)
-    # Cek dengan panjang array unique dan asli  (kalau sama berarti uique semua)
-    if len(np.unique(class_name_values)) == len(class_name_values):
-        isUnique = True
-
-    return isUnique
-
-
-def setHyperparams(epochs, batch_size):
-    st.session_state.hyperparameter["epochs"] = epochs
-    st.session_state.hyperparameter["batch_size"] = batch_size
 
 
 def main():
-    col1, col2, col3, col4, col5 = st.columns(5, gap="large")
+    col1, col2, col3 = st.columns(3, gap="large")
 
-    with col3:
-        total_class_input = st.text_input(
-            "Number of Image Classes", key="data_num_class"
+    # form input numclass
+    with col2:
+        total_class_input = st.number_input(
+            "Banyak Kelas",
+            key="data_num_class",
+            step=1,
+            # min_value=2,
         )
 
-    # DATA INPUT
+    # form input class and image
     if total_class_input:
         try:
-            if int(total_class_input) < 2:
-                st.warning("Please fill number of classes more than 2", icon="⚠️")
-            else:
-                for idx_class in range(int(total_class_input)):
-                    st.text_input(
-                        "Fill Class Name",
-                        label_visibility="hidden",
-                        placeholder="Class Name",
-                        key="data_class_name_{}".format(idx_class),
-                        on_change=isCompleteData,
-                    )
-                    st.file_uploader(
-                        "Add image to train",
-                        accept_multiple_files=True,
-                        key="data_image_samples_{}".format(idx_class),
-                        on_change=isCompleteData,
-                        type=["jpg", "jpeg", "png"],
-                    )
+            for i in range(int(total_class_input)):
+                st.text_input(
+                    "Kelas {}".format(i + 1),
+                    placeholder="Nama Kelas",
+                    key="class_input{}".format(i),
+                    # required=True,
+                )
+                st.file_uploader(
+                    "Input Gambar",
+                    label_visibility="hidden",
+                    accept_multiple_files=True,
+                    key="image_input{}".format(i),
+                    type=["jpg", "jpeg", "png"],
+                )
+                st.markdown("<hr>", unsafe_allow_html=True)
 
-                # TRAINING
-                col1, col2, col3 = st.columns(3, gap="large")
-                # with col2:
-                btn_training = col2.button("Train Model", type="primary")
+            # training model
+            col1, col2, col3 = st.columns(3, gap="large")
+            btn_training = col2.button("Train Model", type="primary")
+            tuning_param = col2.checkbox("tuning parameter")
 
-                checkbox_advanced = col2.checkbox("Advanced")
-                if checkbox_advanced:
-                    epochs_input = col2.number_input("Epochs", min_value=1, value=10)
-                    batch_size_input = col2.number_input(
-                        "Batch Size", min_value=1, value=8
-                    )
-                    setHyperparams(epochs_input, batch_size_input)
+            if tuning_param:
+                st.session_state.epochs_input = col2.number_input(
+                    "Epochs", min_value=1, value=15
+                )
+                st.session_state.batch_size_input = col2.number_input(
+                    "Batch Size", min_value=1, value=8
+                )
 
-                if btn_training:
-                    # Jika Checkbox Advanced tidak di centang maka set default hyperparameter
-                    if checkbox_advanced == False:
-                        # Set Default Parameter in Session
-                        setHyperparams(epochs=10, batch_size=8)
-                    # Jika data masih ada yang belum terisi
-                    if isCompleteData():
-                        if isUniqueClassName():
-                            # PROSES TRAINING
-                            model = f.trainingModel()
-                        else:
-                            col2.warning("Class Name must be Unique", icon="⚠️")
-                    else:
-                        col2.warning("Data doesn't Complete", icon="⚠️")
-        except Exception as e:
-            print(e)
-            st.warning("Please fill with number", icon="⚠️")
+            if btn_training:
+                if tuning_param == False:
+                    st.session_state.epochs_input = 15
+                    st.session_state.batch_size_input = 8
+                model = f.trainingModel()
 
-    # print(st.session_state.isModelTrained)
+        except:
+            st.warning("Form Tidak boleh Kosong!", icon="⚠️")
+
     try:
         if st.session_state.isModelTrained:
-            model = tf.keras.models.load_model(
-                "simple_teachable_machine_model_trained.h5"
+            model_file = ""
+            for i in st.session_state.input_kelas:
+                model_file += i + "-"
+            model = keras.models.load_model(
+                "model/teachable_machine_model_%s.h5" % (model_file)
             )
             f.predictModel(model)
     except:
-        st.warning("Train model first to predict data", icon="ℹ️")
+        # langkah langkah how to use teachable machine mulai dari persiapan data, training, dan prediksi
+        # new line
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<hr>", unsafe_allow_html=True)
+        st.markdown(
+            "<h3 style='text-align:justify'>How to Use Teachable Machine?</h3>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<h4 style='text-align:justify'>1. Persiapan Data</h4>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Masukkan jumlah kelas dari data (minimal 2 kelas)</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Masukkan nama kelas</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Masukkan gambar untuk setiap kelas</p>",
+            unsafe_allow_html=True,
+        )
+        # st.markdown(
+        #     "<p style='text-align:justify'>- Jumlah gambar minimal 10</p>",
+        #     unsafe_allow_html=True,
+        # )
+        st.markdown(
+            "<h4 style='text-align:justify'>2. Training</h4>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Tekan tombol Train Model</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Tunggu hingga proses training selesai</p>",
+            unsafe_allow_html=True,
+        )
+        # tuning parameter
+        st.markdown(
+            "<p style='text-align:justify'>- Centang Tuning Parameter untuk mengubah nilai Epochs dan Batch Size</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<h4 style='text-align:justify'>3. Prediksi</h4>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Tekan tombol Predict</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Pilih gambar yang akan diprediksi</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Tunggu hingga proses prediksi selesai</p>",
+            unsafe_allow_html=True,
+        )
+        # hasil prediksi
+        st.markdown(
+            "<p style='text-align:justify'>- Hasil prediksi dan kemungkinan kelas dari input akan muncul </p>",
+            unsafe_allow_html=True,
+        )
 
 
 if __name__ == "__main__":
