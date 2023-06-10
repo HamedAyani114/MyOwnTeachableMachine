@@ -102,7 +102,7 @@ def trainingModel():
     str_class = ""
     for i in st.session_state.input_kelas:
         str_class += i + "-"
-    model.save("model/teachable_machine_model_%s.h5" % (str_class))
+    model.save("models/teachable_machine_model_%s.h5" % (str_class))
     return model
 
 

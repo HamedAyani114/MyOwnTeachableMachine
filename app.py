@@ -73,7 +73,7 @@ def main():
             for i in st.session_state.input_kelas:
                 model_file += i + "-"
             model = keras.models.load_model(
-                "model/teachable_machine_model_%s.h5" % (model_file)
+                "models/teachable_machine_model_%s.h5" % (model_file)
             )
             f.predictModel(model)
     except:
