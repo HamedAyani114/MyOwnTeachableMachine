@@ -1,7 +1,5 @@
 import streamlit as st
-import numpy as np
 import functions as f
-import keras
 
 
 # TITLE
@@ -25,18 +23,18 @@ def main():
             step=1,
             # min_value=2,
         )
+    st.markdown("<br><br><hr>", unsafe_allow_html=True)
 
     # form input class and image
-    if total_class_input:
+    if total_class_input > 1:
         try:
-            for i in range(int(total_class_input)):
-                st.text_input(
+            for i in range(total_class_input):
+                input_kelas = st.text_input(
                     "Kelas {}".format(i + 1),
                     placeholder="Nama Kelas",
                     key="class_input{}".format(i),
-                    # required=True,
                 )
-                st.file_uploader(
+                input_image = st.file_uploader(
                     "Input Gambar",
                     label_visibility="hidden",
                     accept_multiple_files=True,
@@ -47,40 +45,31 @@ def main():
 
             # training model
             col1, col2, col3 = st.columns(3, gap="large")
-            btn_training = col2.button("Train Model", type="primary")
             tuning_param = col2.checkbox("tuning parameter")
+            btn_training = col2.button("Train Model", type="primary")
 
             if tuning_param:
-                st.session_state.epochs_input = col2.number_input(
-                    "Epochs", min_value=1, value=15
-                )
-                st.session_state.batch_size_input = col2.number_input(
-                    "Batch Size", min_value=1, value=8
-                )
-
+                epochs_input = col2.number_input("Epochs", min_value=1, value=15)
+                batch_size_input = col2.number_input("Batch Size", min_value=1, value=8)
+            else:
+                epochs_input = 10
+                batch_size_input = 8
             if btn_training:
-                if tuning_param == False:
-                    st.session_state.epochs_input = 15
-                    st.session_state.batch_size_input = 8
-                model = f.trainingModel()
-
+                f.trainingModel(epochs_input, batch_size_input)
+                st.success("Model Trained!", icon="✔️")
+                
         except:
             st.warning("Form Tidak boleh Kosong!", icon="⚠️")
+    else:
+        st.info("Minimal 2 Kelas", icon="ℹ️")
 
     try:
         if st.session_state.isModelTrained:
-            model_file = ""
-            for i in st.session_state.input_kelas:
-                model_file += i + "-"
-            model = keras.models.load_model(
-                "models/teachable_machine_model_%s.h5" % (model_file)
-            )
-            f.predictModel(model)
+            f.sidebar()
+            f.predictModel()
     except:
         # langkah langkah how to use teachable machine mulai dari persiapan data, training, dan prediksi
-        # new line
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<hr>", unsafe_allow_html=True)
+        st.markdown("<br><hr><br>", unsafe_allow_html=True)
         st.markdown(
             "<h3 style='text-align:justify'>How to Use Teachable Machine?</h3>",
             unsafe_allow_html=True,
@@ -101,10 +90,6 @@ def main():
             "<p style='text-align:justify'>- Masukkan gambar untuk setiap kelas</p>",
             unsafe_allow_html=True,
         )
-        # st.markdown(
-        #     "<p style='text-align:justify'>- Jumlah gambar minimal 10</p>",
-        #     unsafe_allow_html=True,
-        # )
         st.markdown(
             "<h4 style='text-align:justify'>2. Training</h4>",
             unsafe_allow_html=True,

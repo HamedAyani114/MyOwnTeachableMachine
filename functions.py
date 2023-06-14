@@ -1,12 +1,17 @@
 import keras
 from keras import layers
 from keras.utils import load_img, img_to_array, to_categorical
-
+from keras.callbacks import EarlyStopping
+from keras.applications.mobilenet_v2 import MobileNetV2
 import streamlit as st
 import numpy as np
-from sklearn.utils import shuffle
 from sklearn.preprocessing import LabelEncoder
-from keras.callbacks import EarlyStopping
+from keras.applications.mobilenet_v3 import MobileNetV3Large, MobileNetV3Small
+
+# split data
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
 
 le = LabelEncoder()
 
@@ -23,6 +28,10 @@ def get_ImagesClassForm():
             key_images_input.append(input)
     # st.write(key_class_input)
     # st.write(key_images_input)
+    key_class_input = sorted(key_class_input)
+    key_images_input = sorted(key_images_input)
+    # st.write(key_class_input)
+    # st.write(key_images_input)
 
     st.session_state.input_kelas = []
     data_images = []
@@ -32,92 +41,149 @@ def get_ImagesClassForm():
         kelas = st.session_state[cls_img]
         image = st.session_state[data_img]
         st.session_state.input_kelas.append(kelas)
-        # st.write(st.session_state[class_img])
+        # st.write(kelas)
+        # st.write(image)
 
         for img_input in image:
             # Add class
+            # st.write(kelas)
+            # st.write(img_input)
             class_images.append(kelas)
             # Add Image
-            img = load_img(img_input, target_size=(256, 256))
+            img = load_img(img_input, target_size=(224, 224))
             data_images.append(img_to_array(img))
+    st.session_state.str_kelas = "-".join(st.session_state.input_kelas)
+    # X, y = shuffle(data_images, class_images)
 
-    # Di acak agar proses training maksimal
-    X, y = shuffle(data_images, class_images)
-    y = le.fit_transform(y)
+    # normalize data
+    data_images = np.array(data_images) / 255.0
+    # st.write(X.shape)
+    return data_images, class_images
 
-    return np.array(X), np.array(y)
 
-
-def trainingModel():
-    # tuning parameter
-    epochs = st.session_state.epochs_input
-    batch_size = st.session_state.batch_size_input
+def trainingModel(epoch, batch_size):
+    epochs = epoch
+    batch_size = batch_size
     # st.write(epochs, batch_size)
 
     # data input
-    X_train, y_train = get_ImagesClassForm()
-    # num_label = len(np.unique(labels_data))
+    X, y = get_ImagesClassForm()
+    y_num = le.fit_transform(y)
 
     # one hot encoding
-    y_train = to_categorical(y_train)
-    # st.write(len(labels_data[0]))
+    y_cat = to_categorical(y_num)
 
-    # Model CNN
-    model = keras.Sequential()
-
-    model.add(
-        layers.Conv2D(
-            32,
-            (3, 3),
-            activation="relu",
-            padding="SAME",
-            input_shape=X_train[0].shape,
-        )
+    # split data
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y_cat, test_size=0.2, random_state=42
     )
-    model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=2, padding="SAME"))
-    model.add(layers.Conv2D(64, (3, 3), activation="relu", padding="SAME"))
-    model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=2, padding="SAME"))
-    model.add(layers.Conv2D(64, (3, 3), activation="relu", padding="SAME"))
-    model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=2, padding="SAME"))
-    model.add(layers.Conv2D(32, (3, 3), activation="relu", padding="SAME"))
 
-    model.add(layers.Flatten())
-    model.add(layers.Dense(128, activation="relu"))
-    model.add(layers.Dense(len(y_train[0]), activation="softmax"))
+    # model = keras.Sequential()
+    # model.add(
+    #     layers.Conv2D(
+    #         32,
+    #         (3, 3),
+    #         activation="relu",
+    #         padding="SAME",
+    #         input_shape=X[0].shape,
+    #     )
+    # )
+    # model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=2, padding="SAME"))
+    # model.add(layers.Conv2D(64, (3, 3), activation="relu", padding="SAME"))
+    # model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=2, padding="SAME"))
+    # model.add(layers.Conv2D(64, (3, 3), activation="relu", padding="SAME"))
+    # model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=2, padding="SAME"))
+    # model.add(layers.Conv2D(32, (3, 3), activation="relu", padding="SAME"))
 
-    # Compile model
+    # model.add(layers.Flatten())
+    # model.add(layers.Dense(128, activation="relu"))
+    # model.add(layers.Dense(len(y_cat[0]), activation="softmax"))
+
+    # Model
+    base_model = MobileNetV2(
+        weights="imagenet", input_shape=X_train[0].shape, include_top=False
+    )
+    base_model.trainable = False
+    inputs = keras.Input(shape=X_train[0].shape)
+    x = base_model(inputs, training=False)
+    x = layers.GlobalAveragePooling2D()(x)
+    x = layers.Dense(16, activation="relu")(x)
+
+    outputs = layers.Dense(len(y_cat[0]), activation="softmax")(x)
+    model = keras.Model(inputs, outputs)
     model.compile(
-        optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"]
+        optimizer="adam",
+        loss="categorical_crossentropy",
+        metrics=["accuracy"],
     )
-    early_stop = EarlyStopping(monitor="loss", patience=2, min_delta=0.01)
+    early_stop = EarlyStopping(monitor="loss", patience=1, min_delta=0.01)
     model.fit(
         X_train,
         y_train,
         epochs=epochs,
         batch_size=batch_size,
         callbacks=[early_stop],
+        shuffle=True,
+        validation_data=(X_test, y_test),
+    )
+    y_pred = model.predict(X_test)
+    y_pred = np.argmax(y_pred, axis=1)
+
+    st.session_state.y_pred_class = le.inverse_transform(y_pred)
+    st.session_state.y_test = le.inverse_transform(np.argmax(y_test, axis=1))
+    # st.write(confusion_matrix(st.session_state.y_test, st.session_state.y_pred_class))
+
+    model.save("models/teachable_machine_model_%s.h5" % (st.session_state.str_kelas))
+    st.session_state.path_model = "models/teachable_machine_model_%s.h5" % (
+        st.session_state.str_kelas
     )
 
     st.session_state.isModelTrained = True
-    str_class = ""
-    for i in st.session_state.input_kelas:
-        str_class += i + "-"
-    model.save("models/teachable_machine_model_%s.h5" % (str_class))
-    return model
+    # return path_model
 
 
-def get_ImagePredict(model):
-    img = load_img(st.session_state.data_image_predict, target_size=(256, 256))
-    X_test = np.array([img_to_array(img)])
+def sidebar():
+    CM_fig = ConfusionMatrixDisplay.from_predictions(
+        st.session_state.y_test, st.session_state.y_pred_class
+    )
+    st.sidebar.markdown(
+        "<h2 style='text-align:center;'>Confusion Matrix from Trainning</h2>",
+        unsafe_allow_html=True,
+    )
+    st.sidebar.pyplot(CM_fig.figure_)
+
+    # download model
+    st.sidebar.markdown(
+        "<h2 style='text-align:center;'>Download Model</h2>", unsafe_allow_html=True
+    )
+    st.sidebar.download_button(
+        label="Download Model",
+        data=open(st.session_state.path_model, "rb").read(),
+        file_name="teachable_machine_model_%s.h5" % (st.session_state.str_kelas),
+    )
+    # button refresh
+    st.sidebar.markdown(
+        "<h2 style='text-align:center;'>Refresh</h2>", unsafe_allow_html=True
+    )
+    if st.sidebar.button("Refresh"):
+        st.caching.clear_cache()
+        st.experimental_rerun()
+
+
+def get_ImagePredict():
+    model = keras.models.load_model(st.session_state.path_model)
+    img = load_img(st.session_state.data_image_predict, target_size=(224, 224))
+    X_test = np.array([img_to_array(img)]) / 255.0
+    st.write(X_test)
     result = model.predict(X_test)
     # st.write(result)
     return result
 
 
-def predictModel(model):
-    # PROSES PREDICTION
+def predictModel():
+    st.markdown("<br><br><hr>", unsafe_allow_html=True)
     st.markdown(
-        "<h1 style='text-align:center;'> -----Try to Predict Image----- </h1>",
+        "<h1 style='text-align:center;'> Prediksi Gambar </h1>",
         unsafe_allow_html=True,
     )
     image_predict = st.file_uploader(
@@ -130,30 +196,26 @@ def predictModel(model):
             "png",
         ],
     )
-    btn_predict_image = st.button("Predict", type="primary")
-    if btn_predict_image:
-        if image_predict:
-            st.markdown("<h4>Image Predict</h4>", unsafe_allow_html=True)
-            st.image(image_predict)
-            st.markdown("<h4>Results</h4>", unsafe_allow_html=True)
+    if image_predict:
+        st.markdown("<h4>Image Predict</h4>", unsafe_allow_html=True)
+        st.image(image_predict)
+        st.markdown("<h4>Hasil</h4>", unsafe_allow_html=True)
+        # st.write("Image Predict: ")
+        result = get_ImagePredict()
+        # st.write(result)
+        y_pred = np.argmax(result, axis=1)
+        # st.write(y_pred)
+        # st.text((st.session_state.input_kelas))
+        str_class = st.session_state.input_kelas[y_pred[0]]
+        # st.write("Gambar ini termasuk ke dalam kelas: %s" % (str_class))
+        st.write(
+            "Gambar ini termasuk ke dalam kelas: %s - Probabilitas : %.3f"
+            % (str_class, result[0][y_pred] * 100)
+        )
+        for probability, kelas in zip(result[0], list(st.session_state.input_kelas)):
+            st.write("Kelas: %s - Probabilitas : %.3f " % (kelas, probability * 100))
+    else:
+        st.info("Masukkan Gambar untuk prediksi", icon="ℹ️")
 
-            # st.write("Image Predict: ")
-            result = get_ImagePredict(model)
-            # st.write(result)
-            y_pred = np.argmax(result, axis=1)
-            # st.write(y_pred)
-            # st.text((st.session_state.input_kelas))
-            str_class = st.session_state.input_kelas[y_pred[0]]
-            # st.write("Gambar ini termasuk ke dalam kelas: %s" % (str_class))
-            st.write(
-                "Gambar ini termasuk ke dalam kelas: %s - Probabilitas : %.3f"
-                % (str_class, result[0][y_pred] * 100)
-            )
-            for probability, kelas in zip(
-                result[0], list(st.session_state.input_kelas)
-            ):
-                st.write(
-                    "Kelas: %s - Probabilitas : %.3f " % (kelas, probability * 100)
-                )
-        else:
-            st.warning("Masukkan Gambar untuk prediksi", icon="⚠️")
+
+st.cache(suppress_st_warning=True)
