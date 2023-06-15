@@ -161,13 +161,13 @@ def sidebar():
         data=open(st.session_state.path_model, "rb").read(),
         file_name="teachable_machine_model_%s.h5" % (st.session_state.str_kelas),
     )
-    # button refresh
-    st.sidebar.markdown(
-        "<h2 style='text-align:center;'>Refresh</h2>", unsafe_allow_html=True
-    )
-    if st.sidebar.button("Refresh"):
-        st.caching.clear_cache()
-        st.experimental_rerun()
+    # # refresh
+    # st.sidebar.markdown(
+    #     "<h2 style='text-align:center;'>Refresh</h2>", unsafe_allow_html=True
+    # )
+    # if st.sidebar.button("Refresh"):
+    #     st.caching.clear_cache()
+    #     st.experimental_rerun()
 
 
 def get_ImagePredict():
