@@ -230,7 +230,7 @@ def get_ImagePredict():
     return result
 
 
-def predictModel():
+def show_result():
     st.markdown("<br><br><hr>", unsafe_allow_html=True)
     st.markdown(
         "<h1 style='text-align:center;'> Prediksi Gambar </h1>",

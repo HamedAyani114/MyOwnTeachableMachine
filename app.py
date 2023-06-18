@@ -65,7 +65,7 @@ def main():
     try:
         if st.session_state.isModelTrained:
             f.sidebar()
-            f.predictModel()
+            f.show_result()
     except:
         # langkah langkah how to use teachable machine mulai dari persiapan data, training, dan prediksi
         st.markdown("<br><hr><br>", unsafe_allow_html=True)
