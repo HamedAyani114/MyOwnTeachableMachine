@@ -1,7 +1,6 @@
 import keras
 from keras import layers
 from keras.utils import load_img, img_to_array, to_categorical
-from keras.callbacks import EarlyStopping
 from keras.applications.mobilenet_v2 import MobileNetV2
 import streamlit as st
 import numpy as np
@@ -27,6 +26,7 @@ def record_video(class_name):
     )
 
     cap = cv2.VideoCapture(0)
+    # cap = cv2.VideoCapture("http://192.168.18.220:8080/video")
     fps = 12
     shut_speed = 1 / fps
     frames = []
@@ -58,7 +58,6 @@ def record_video(class_name):
     st.success("Video recorded for Class: {}!".format(class_name), icon="✔️")
 
     # st.write(data_images.shape, class_images.shape)
-    st.write("form atas: ", class_images)
     return data_images, class_images
 
 
@@ -72,12 +71,8 @@ def get_ImagesClassForm():
             key_class_input.append(input)
         elif "image_input" in input:
             key_images_input.append(input)
-    # st.write(key_class_input)
-    # st.write(key_images_input)
     key_class_input = sorted(key_class_input)
     key_images_input = sorted(key_images_input)
-    # st.write(key_class_input)
-    # st.write(key_images_input)
 
     data_images = []
     class_images = []
@@ -85,70 +80,33 @@ def get_ImagesClassForm():
     for data_img, cls_img in zip(key_images_input, key_class_input):
         kelas = st.session_state[cls_img]
         image = st.session_state[data_img]
-        # st.session_state.input_kelas.append(kelas)
-        # st.write(kelas)
-        # st.write(image)
 
-        for img_input in image:
-            # Add class
-            # st.write(kelas)
-            # st.write(img_input)
-            class_images.append(kelas)
-            # Add Image
-            img = load_img(img_input, target_size=(224, 224))
-            data_images.append(img_to_array(img))
-    # st.session_state.str_kelas = "-".join(st.session_state.input_kelas)
-    # Ambil data dari rekaman video
-    data_images = np.array(data_images)
-    class_images = np.array(class_images)
-    st.write("form: ", data_images.shape, class_images.shape)
+        if image:
+            for img_input in image:
+                # Add class
+                class_images.append(kelas)
+                # Add Image
+                img = load_img(img_input, target_size=(224, 224))
+                data_images.append(img_to_array(img))
 
-    # Ambil data dari rekaman video
-    # for e in st.session_state:
-    #     st.write(e)
     for i in range(len(key_class_input)):
         recorded_frames_key = "recorded_frames{}".format(i)
         recorded_classes_key = "recorded_class{}".format(i)
-        st.write(recorded_frames_key, recorded_classes_key)
+        # st.write(recorded_frames_key, recorded_classes_key)
         if (
             recorded_frames_key in st.session_state
             and recorded_classes_key in st.session_state
         ):
             recorded_frames = st.session_state[recorded_frames_key]
             recorded_classes = st.session_state[recorded_classes_key]
-            # show image
-            st.image(recorded_frames[0], width=224)
-            st.write(recorded_classes[0])
-            st.write("recorded: ", recorded_frames.shape, recorded_classes.shape)
-            data_images = np.concatenate((data_images, recorded_frames), axis=0)
-            class_images = np.concatenate((class_images, recorded_classes), axis=0)
-            st.write("gabung: ", data_images.shape, class_images.shape)
 
-    # data_images = np.concatenate(
-    #     (data_images, st.session_state.recorded_frames0), axis=0
-    # )
-    # class_images = np.concatenate(
-    #     (class_images, st.session_state.recorded_class0), axis=0
-    # )
-    # data_images = np.concatenate(
-    #     (data_images, st.session_state.recorded_frames1), axis=0
-    # )
-    # class_images = np.concatenate(
-    #     (class_images, st.session_state.recorded_class1), axis=0
-    # )
+            data_images.extend(recorded_frames)
+            class_images.extend(recorded_classes)
 
-    # data_images.extend(st.session_state.recorded_frames0)
-    # class_images.extend(st.session_state.recorded_class0)
+    data_images = np.array(data_images)
+    class_images = np.array(class_images)
+    # st.write("gabung: ", data_images.shape, class_images.shape)
 
-    # normalize data
-    # st.write((st.session_state.recorded_frames0).shape)
-    # st.write((st.session_state.recorded_class0).shape)
-    # st.write((st.session_state.recorded_frames1).shape)
-    # st.write((st.session_state.recorded_class1).shape)
-    st.write()
-    st.write("final:", data_images.shape, class_images.shape)
-    # st.write(data_images, class_images)
-    # st.image(data_images[0])
     return data_images / 255.0, class_images
 
 
@@ -189,16 +147,43 @@ def trainingModel(epochs, batch_size):
         loss="categorical_crossentropy",
         metrics=["accuracy"],
     )
-    early_stop = EarlyStopping(monitor="loss", patience=1, min_delta=0.01)
-    model.fit(
-        X_train,
-        y_train,
-        epochs=epochs,
-        batch_size=batch_size,
-        callbacks=[early_stop],
-        shuffle=True,
-        validation_data=(X_test, y_test),
-    )
+    # Train model
+
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    for epoch in range(epochs):
+        model.fit(
+            X_train,
+            y_train,
+            epochs=1,
+            batch_size=batch_size,
+            shuffle=True,
+            validation_data=(X_test, y_test),
+        )
+        progress = (epoch + 1) / epochs
+        progress_bar.progress(progress)
+        # history model
+        train_loss, train_acc = (
+            model.history.history["loss"][0],
+            model.history.history["accuracy"][0],
+        )
+        val_loss, val_acc = (
+            model.history.history["val_loss"][0],
+            model.history.history["val_accuracy"][0],
+        )
+        status_text.text(
+            "Epoch: %d/%d - Training in progress... \ntrain loss: %.4f - train acc: %.3f \nval loss: %.4f - val acc: %.3f "
+            % (epoch + 1, epochs, train_loss, train_acc, val_loss, val_acc)
+        )
+        if val_loss < 0.01:
+            break
+
+    # history model
+    status_text.text(f"Epoch {epoch + 1}/{epochs} - Training completed!")
+    st.write("train loss: %.4f - train acc: %.3f " % (train_loss, train_acc))
+    st.write("val loss: %.4f - val acc: %.3f " % (val_loss, val_acc))
+
     y_pred = model.predict(X_test)
     y_pred = np.argmax(y_pred, axis=1)
 
@@ -212,7 +197,6 @@ def trainingModel(epochs, batch_size):
     )
 
     st.session_state.isModelTrained = True
-    # return path_model
 
 
 def sidebar():
@@ -266,20 +250,16 @@ def predictModel():
         st.markdown("<h4>Image Predict</h4>", unsafe_allow_html=True)
         st.image(image_predict)
         st.markdown("<h4>Hasil</h4>", unsafe_allow_html=True)
-        # st.write("Image Predict: ")
         result = get_ImagePredict()
-        # st.write(result)
         y_pred = np.argmax(result, axis=1)
-        # st.write(y_pred)
-        # st.text((st.session_state.input_kelas))
         str_class = st.session_state.input_kelas[y_pred[0]]
-        # st.write("Gambar ini termasuk ke dalam kelas: %s" % (str_class))
         st.write(
             "Gambar ini termasuk ke dalam kelas: %s - Probabilitas : %.3f"
             % (str_class, result[0][y_pred] * 100)
         )
         for probability, kelas in zip(result[0], list(st.session_state.input_kelas)):
-            st.write("Kelas: %s - Probabilitas : %.3f " % (kelas, probability * 100))
+            st.write("Kelas: %s - Probabilitas : %.3f" % (kelas, probability * 100))
+            st.progress(int(probability * 100))
     else:
         st.info("Masukkan Gambar untuk prediksi", icon="ℹ️")
 
