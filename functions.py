@@ -6,14 +6,60 @@ from keras.applications.mobilenet_v2 import MobileNetV2
 import streamlit as st
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
-from keras.applications.mobilenet_v3 import MobileNetV3Large, MobileNetV3Small
+
+# from keras.applications.mobilenet_v3 import MobileNetV3Large, MobileNetV3Small
 
 # split data
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
+import cv2
+import time
+
 
 le = LabelEncoder()
+
+
+def record_video(class_name):
+    st.markdown(
+        "<h3>Recording for Class: {}</h3>".format(class_name),
+        unsafe_allow_html=True,
+    )
+
+    cap = cv2.VideoCapture(0)
+    fps = 12
+    shut_speed = 1 / fps
+    frames = []
+    class_images = []
+
+    cv2.namedWindow("Live Capture")
+    start = True
+    while start:
+        ret, frame = cap.read()
+        cv2.imshow("Live Capture", frame)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = cv2.resize(frame, (224, 224))  # Resize frame to 224x224
+        frames.append(frame)
+        class_images.append(class_name)
+        time.sleep(shut_speed)
+
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            start = False
+    cv2.destroyAllWindows()
+
+    data_images = np.array(frames)
+    class_images = np.array(class_images)
+
+    st.markdown(
+        "<h5> Total Sample: {}</h5>".format(data_images.shape[0]),
+        unsafe_allow_html=True,
+    )
+    cap.release()
+    st.success("Video recorded for Class: {}!".format(class_name), icon="✔️")
+
+    # st.write(data_images.shape, class_images.shape)
+    st.write("form atas: ", class_images)
+    return data_images, class_images
 
 
 def get_ImagesClassForm():
@@ -33,14 +79,13 @@ def get_ImagesClassForm():
     # st.write(key_class_input)
     # st.write(key_images_input)
 
-    st.session_state.input_kelas = []
     data_images = []
     class_images = []
 
     for data_img, cls_img in zip(key_images_input, key_class_input):
         kelas = st.session_state[cls_img]
         image = st.session_state[data_img]
-        st.session_state.input_kelas.append(kelas)
+        # st.session_state.input_kelas.append(kelas)
         # st.write(kelas)
         # st.write(image)
 
@@ -52,23 +97,73 @@ def get_ImagesClassForm():
             # Add Image
             img = load_img(img_input, target_size=(224, 224))
             data_images.append(img_to_array(img))
-    st.session_state.str_kelas = "-".join(st.session_state.input_kelas)
-    # X, y = shuffle(data_images, class_images)
+    # st.session_state.str_kelas = "-".join(st.session_state.input_kelas)
+    # Ambil data dari rekaman video
+    data_images = np.array(data_images)
+    class_images = np.array(class_images)
+    st.write("form: ", data_images.shape, class_images.shape)
+
+    # Ambil data dari rekaman video
+    # for e in st.session_state:
+    #     st.write(e)
+    for i in range(len(key_class_input)):
+        recorded_frames_key = "recorded_frames{}".format(i)
+        recorded_classes_key = "recorded_class{}".format(i)
+        st.write(recorded_frames_key, recorded_classes_key)
+        if (
+            recorded_frames_key in st.session_state
+            and recorded_classes_key in st.session_state
+        ):
+            recorded_frames = st.session_state[recorded_frames_key]
+            recorded_classes = st.session_state[recorded_classes_key]
+            # show image
+            st.image(recorded_frames[0], width=224)
+            st.write(recorded_classes[0])
+            st.write("recorded: ", recorded_frames.shape, recorded_classes.shape)
+            data_images = np.concatenate((data_images, recorded_frames), axis=0)
+            class_images = np.concatenate((class_images, recorded_classes), axis=0)
+            st.write("gabung: ", data_images.shape, class_images.shape)
+
+    # data_images = np.concatenate(
+    #     (data_images, st.session_state.recorded_frames0), axis=0
+    # )
+    # class_images = np.concatenate(
+    #     (class_images, st.session_state.recorded_class0), axis=0
+    # )
+    # data_images = np.concatenate(
+    #     (data_images, st.session_state.recorded_frames1), axis=0
+    # )
+    # class_images = np.concatenate(
+    #     (class_images, st.session_state.recorded_class1), axis=0
+    # )
+
+    # data_images.extend(st.session_state.recorded_frames0)
+    # class_images.extend(st.session_state.recorded_class0)
 
     # normalize data
-    data_images = np.array(data_images) / 255.0
-    # st.write(X.shape)
-    return data_images, class_images
+    # st.write((st.session_state.recorded_frames0).shape)
+    # st.write((st.session_state.recorded_class0).shape)
+    # st.write((st.session_state.recorded_frames1).shape)
+    # st.write((st.session_state.recorded_class1).shape)
+    st.write()
+    st.write("final:", data_images.shape, class_images.shape)
+    # st.write(data_images, class_images)
+    # st.image(data_images[0])
+    return data_images / 255.0, class_images
 
 
-def trainingModel(epoch, batch_size):
-    epochs = epoch
+def trainingModel(epochs, batch_size):
+    epochs = epochs
     batch_size = batch_size
     # st.write(epochs, batch_size)
 
     # data input
     X, y = get_ImagesClassForm()
+    # st.write(y)
     y_num = le.fit_transform(y)
+    st.session_state.input_kelas = le.classes_
+    st.write(st.session_state.input_kelas)
+    st.session_state.str_kelas = "-".join(st.session_state.input_kelas)
 
     # one hot encoding
     y_cat = to_categorical(y_num)
@@ -77,28 +172,6 @@ def trainingModel(epoch, batch_size):
     X_train, X_test, y_train, y_test = train_test_split(
         X, y_cat, test_size=0.2, random_state=42
     )
-
-    # model = keras.Sequential()
-    # model.add(
-    #     layers.Conv2D(
-    #         32,
-    #         (3, 3),
-    #         activation="relu",
-    #         padding="SAME",
-    #         input_shape=X[0].shape,
-    #     )
-    # )
-    # model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=2, padding="SAME"))
-    # model.add(layers.Conv2D(64, (3, 3), activation="relu", padding="SAME"))
-    # model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=2, padding="SAME"))
-    # model.add(layers.Conv2D(64, (3, 3), activation="relu", padding="SAME"))
-    # model.add(layers.MaxPooling2D(pool_size=(2, 2), strides=2, padding="SAME"))
-    # model.add(layers.Conv2D(32, (3, 3), activation="relu", padding="SAME"))
-
-    # model.add(layers.Flatten())
-    # model.add(layers.Dense(128, activation="relu"))
-    # model.add(layers.Dense(len(y_cat[0]), activation="softmax"))
-
     # Model
     base_model = MobileNetV2(
         weights="imagenet", input_shape=X_train[0].shape, include_top=False
@@ -161,20 +234,13 @@ def sidebar():
         data=open(st.session_state.path_model, "rb").read(),
         file_name="teachable_machine_model_%s.h5" % (st.session_state.str_kelas),
     )
-    # # refresh
-    # st.sidebar.markdown(
-    #     "<h2 style='text-align:center;'>Refresh</h2>", unsafe_allow_html=True
-    # )
-    # if st.sidebar.button("Refresh"):
-    #     st.caching.clear_cache()
-    #     st.experimental_rerun()
 
 
 def get_ImagePredict():
     model = keras.models.load_model(st.session_state.path_model)
     img = load_img(st.session_state.data_image_predict, target_size=(224, 224))
     X_test = np.array([img_to_array(img)]) / 255.0
-    st.write(X_test)
+    # st.write(X_test)
     result = model.predict(X_test)
     # st.write(result)
     return result
