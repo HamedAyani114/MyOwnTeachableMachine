@@ -2,7 +2,6 @@ import streamlit as st
 import functions as f
 
 
-# Main function
 def main():
     st.markdown(
         "<h1 style='text-align:center'>Teachable Machine</h1>", unsafe_allow_html=True
@@ -17,7 +16,7 @@ def main():
         "Banyak Kelas", key="data_num_class", step=1, value=2
     )
 
-    st.markdown("<br><br><hr>", unsafe_allow_html=True)
+    st.markdown("<br><hr>", unsafe_allow_html=True)
 
     # Form input class and video duration
     if total_class_input > 1:
@@ -51,7 +50,7 @@ def main():
             btn_training = col2.button("Train Model", type="primary")
 
             if tuning_param:
-                epochs_input = col2.number_input("Epochs", min_value=1, value=15)
+                epochs_input = col2.number_input("Epochs", min_value=1, value=10)
                 batch_size_input = col2.number_input("Batch Size", min_value=1, value=8)
             else:
                 epochs_input = 10
