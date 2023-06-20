@@ -15,7 +15,6 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 le = LabelEncoder()
 
-
 # def record_video(class_name):
 #     st.markdown(
 #         "<h3>Capture Frame for Class: %s</h3>" % class_name,
