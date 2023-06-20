@@ -65,12 +65,12 @@ def main():
             st.warning("Form Tidak boleh Kosong!", icon="⚠️")
     else:
         st.info("Minimal 2 Kelas", icon="ℹ️")
-    try:
-        if st.session_state.isModelTrained == 1:
-            print(st.session_state.isModelTrained)
-            f.sidebar()
-            f.show_result()
-    except:
+
+    if st.session_state.isModelTrained == 1:
+        print(st.session_state.isModelTrained)
+        f.sidebar()
+        f.show_result()
+    else:
         # langkah langkah how to use teachable machine mulai dari persiapan data, training, dan prediksi
         st.markdown("<br><hr><br>", unsafe_allow_html=True)
         st.markdown(
