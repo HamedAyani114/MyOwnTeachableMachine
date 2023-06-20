@@ -15,65 +15,65 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 le = LabelEncoder()
 
-# def record_video(class_name):
-#     st.markdown(
-#         "<h3>Capture Frame for Class: %s</h3>" % class_name,
-#         unsafe_allow_html=True,
-#     )
 
-#     cap = cv2.VideoCapture(0)
-#     # cap = cv2.VideoCapture("http://192.168.1.17:8080/video")
-#     fps = 12
-#     shut_speed = 1 / fps
-#     frames = []
-#     class_images = []
-#     temp = 0
+def record_video(class_name):
+    st.markdown(
+        "<h3>Capture Frame for Class: %s</h3>" % class_name,
+        unsafe_allow_html=True,
+    )
 
-#     cv2.namedWindow("Frame Capture")
-#     start = True
-#     while start:
-#         temp += 1
-#         ret, frame = cap.read()
-#         frame = cv2.flip(frame, 1)
-#         cv2.putText(
-#             frame,
-#             " Kelas: %s - Sample: %.f" % (class_name, temp),
-#             (10, 20),
-#             cv2.FONT_HERSHEY_SIMPLEX,
-#             0.5,
-#             (0, 255, 0),
-#             1,
-#             cv2.LINE_AA,
-#         )
-#         # mirror image
-#         cv2.imshow("Frame Capture", frame)
-#         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-#         frame = cv2.resize(frame, (224, 224))
-#         frames.append(frame)
-#         class_images.append(class_name)
-#         time.sleep(shut_speed)
+    cap = cv2.VideoCapture(0)
+    # cap = cv2.VideoCapture("http://192.168.1.17:8080/video")
+    fps = 12
+    shut_speed = 1 / fps
+    frames = []
+    class_images = []
+    temp = 0
 
-#         if cv2.waitKey(1) & 0xFF == ord("q"):
-#             start = False
+    cv2.namedWindow("Frame Capture")
+    start = True
+    while start:
+        temp += 1
+        ret, frame = cap.read()
+        frame = cv2.flip(frame, 1)
+        cv2.putText(
+            frame,
+            " Kelas: %s - Sample: %.f" % (class_name, temp),
+            (10, 20),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (0, 255, 0),
+            1,
+            cv2.LINE_AA,
+        )
+        # mirror image
+        cv2.imshow("Frame Capture", frame)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = cv2.resize(frame, (224, 224))
+        frames.append(frame)
+        class_images.append(class_name)
+        time.sleep(shut_speed)
 
-#     cv2.destroyAllWindows()
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            start = False
 
-#     data_images = np.array(frames)
-#     class_images = np.array(class_images)
+    cv2.destroyAllWindows()
 
-#     # show frame 1 10 20
-#     # show first frame, middle frame, last frame
-#     st.markdown("<h3>Sample Frame</h3>", unsafe_allow_html=True)
-#     st.image(data_images[[0, len(data_images) // 2, -1]])
-#     st.markdown(
-#         "<h5> Total Sample Frame: {}</h5>".format(data_images.shape[0]),
-#         unsafe_allow_html=True,
-#     )
-#     cap.release()
-#     st.success("Frame Capture for Class: {}!".format(class_name), icon="✔️")
+    data_images = np.array(frames)
+    class_images = np.array(class_images)
 
-#     # st.write(data_images.shape, class_images.shape)
-#     return data_images, class_images
+    # show first frame, middle frame, last frame
+    st.markdown("<h3>Sample Frame</h3>", unsafe_allow_html=True)
+    st.image(data_images[[0, len(data_images) // 2, -1]])
+    st.markdown(
+        "<h5> Total Sample Frame: {}</h5>".format(data_images.shape[0]),
+        unsafe_allow_html=True,
+    )
+    cap.release()
+    st.success("Frame Capture for Class: {}!".format(class_name), icon="✔️")
+
+    # st.write(data_images.shape, class_images.shape)
+    return data_images, class_images
 
 
 def get_ImagesClassForm():
@@ -104,19 +104,19 @@ def get_ImagesClassForm():
                 img = load_img(img_input, target_size=(224, 224))
                 data_images.append(img_to_array(img))
 
-    # for i in range(len(key_class_input)):
-    #     recorded_frames_key = "recorded_frames{}".format(i)
-    #     recorded_classes_key = "recorded_class{}".format(i)
-    #     # st.write(recorded_frames_key, recorded_classes_key)
-    #     if (
-    #         recorded_frames_key in st.session_state
-    #         and recorded_classes_key in st.session_state
-    #     ):
-    #         recorded_frames = st.session_state[recorded_frames_key]
-    #         recorded_classes = st.session_state[recorded_classes_key]
+    for i in range(len(key_class_input)):
+        recorded_frames_key = "recorded_frames{}".format(i)
+        recorded_classes_key = "recorded_class{}".format(i)
+        # st.write(recorded_frames_key, recorded_classes_key)
+        if (
+            recorded_frames_key in st.session_state
+            and recorded_classes_key in st.session_state
+        ):
+            recorded_frames = st.session_state[recorded_frames_key]
+            recorded_classes = st.session_state[recorded_classes_key]
 
-    #         data_images.extend(recorded_frames)
-    #         class_images.extend(recorded_classes)
+            data_images.extend(recorded_frames)
+            class_images.extend(recorded_classes)
     # cek unique class
     if len(np.unique(class_images)) < 2:
         return False
@@ -171,7 +171,6 @@ def trainingModel(epochs, batch_size):
     # progress_bar = st.progress(0)
     status_text = st.empty()
 
-    # for epoch in range(epochs):
     for epoch in stqdm(range(epochs), st_container=st.write()):
         model.fit(
             X_train,
@@ -181,8 +180,7 @@ def trainingModel(epochs, batch_size):
             shuffle=True,
             validation_data=(X_test, y_test),
         )
-        # progress = (epoch + 1) / epochs
-        # progress_bar.progress(progress)
+
         # history model
         (train_loss, train_acc, val_loss, val_acc) = (
             model.history.history["loss"][0],

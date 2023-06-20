@@ -3,7 +3,6 @@ import functions as f
 
 if "isModelTrained" not in st.session_state:
     st.session_state.isModelTrained = 0
-    # st.session_state.count = 0
 
 
 def main():
@@ -39,13 +38,13 @@ def main():
                     type=["jpg", "jpeg", "png"],
                 )
 
-                # buttonvideo = st.button("Record", key="record_button{}".format(i))
-                # if buttonvideo:
-                #     recorded_frames = f.record_video(input_kelas)
-                #     (
-                #         st.session_state["recorded_frames{}".format(i)],
-                #         st.session_state["recorded_class{}".format(i)],
-                #     ) = recorded_frames
+                buttonvideo = st.button("Record", key="record_button{}".format(i))
+                if buttonvideo:
+                    recorded_frames = f.record_video(input_kelas)
+                    (
+                        st.session_state["recorded_frames{}".format(i)],
+                        st.session_state["recorded_class{}".format(i)],
+                    ) = recorded_frames
                 st.markdown("<br><hr>", unsafe_allow_html=True)
 
             # training model
@@ -67,7 +66,7 @@ def main():
         st.info("Minimal 2 Kelas", icon="ℹ️")
 
     if st.session_state.isModelTrained == 1:
-        print(st.session_state.isModelTrained)
+        # print(st.session_state.isModelTrained)
         f.sidebar()
         f.show_result()
     else:
