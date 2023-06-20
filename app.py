@@ -2,7 +2,7 @@ import streamlit as st
 import functions as f
 
 if "isModelTrained" not in st.session_state:
-    st.session_state.isModelTrained = False
+    st.session_state.isModelTrained = 0
     # st.session_state.count = 0
 
 
@@ -66,7 +66,7 @@ def main():
     else:
         st.info("Minimal 2 Kelas", icon="ℹ️")
     try:
-        if st.session_state.isModelTrained:
+        if st.session_state.isModelTrained == 1:
             print(st.session_state.isModelTrained)
             f.sidebar()
             f.show_result()

@@ -127,6 +127,7 @@ def get_ImagesClassForm():
 
     return data_images, class_images
 
+
 def trainingModel(epochs, batch_size):
     epochs = epochs
     batch_size = batch_size
@@ -210,7 +211,7 @@ def trainingModel(epochs, batch_size):
 
     glob_path_model = "models/teachable_machine_model_%s.h5" % (glob_str_kelas)
     model.save(glob_path_model)
-    st.session_state.isModelTrained = True
+    st.session_state.isModelTrained = 1
     # return True
 
 
