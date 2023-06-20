@@ -15,6 +15,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 le = LabelEncoder()
 
+
 def record_video(class_name):
     st.markdown(
         "<h3>Capture Frame for Class: %s</h3>" % class_name,
@@ -22,7 +23,7 @@ def record_video(class_name):
     )
 
     cap = cv2.VideoCapture(0)
-    # cap = cv2.VideoCapture("http://192.168.18.220:8080/video")
+    # cap = cv2.VideoCapture("http://192.168.1.17:8080/video")
     fps = 12
     shut_speed = 1 / fps
     frames = []
@@ -34,6 +35,7 @@ def record_video(class_name):
     while start:
         temp += 1
         ret, frame = cap.read()
+        frame = cv2.flip(frame, 1)
         cv2.putText(
             frame,
             " Kelas: %s - Sample: %.f" % (class_name, temp),
@@ -44,6 +46,7 @@ def record_video(class_name):
             1,
             cv2.LINE_AA,
         )
+        # mirror image
         cv2.imshow("Frame Capture", frame)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = cv2.resize(frame, (224, 224))
@@ -192,7 +195,7 @@ def trainingModel(epochs, batch_size):
             "Epoch: %d/%d - Training in progress... \ntrain loss: %.4f - train acc: %.3f \nval loss: %.4f - val acc: %.3f "
             % (epoch + 1, epochs, train_loss, train_acc, val_loss, val_acc)
         )
-        if val_loss < 0.01:
+        if train_loss < 0.005:
             break
 
     # history model
@@ -248,16 +251,29 @@ def show_result():
         "<h1 style='text-align:center;'> Prediksi Gambar </h1>",
         unsafe_allow_html=True,
     )
-    image_predict = st.file_uploader(
-        "Add image to predict",
-        accept_multiple_files=False,
-        key="data_image_predict",
-        type=[
-            "jpg",
-            "jpeg",
-            "png",
-        ],
+
+    radiopredict = st.radio(
+        "Pilih Salah Satu",
+        ("Upload Gambar", "Ambil Gambar dari Webcam"),
+        key="radiopredict",
     )
+    if radiopredict == "Upload Gambar":
+        image_predict = st.file_uploader(
+            "Upload Gambar",
+            accept_multiple_files=False,
+            key="data_image_predict",
+            type=[
+                "jpg",
+                "jpeg",
+                "png",
+            ],
+        )
+    elif radiopredict == "Ambil Gambar dari Webcam":
+        image_predict = st.camera_input(
+            "Ambil Gambar dari Webcam",
+            key="data_image_predict",
+        )
+
     if image_predict:
         st.markdown("<h4>Image Predict</h4>", unsafe_allow_html=True)
         st.image(image_predict)

@@ -1,7 +1,6 @@
 import streamlit as st
 import functions as f
 
-
 def main():
     st.markdown(
         "<h1 style='text-align:center'>Teachable Machine</h1>", unsafe_allow_html=True

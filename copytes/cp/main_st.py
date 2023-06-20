@@ -1,125 +1,142 @@
 import streamlit as st
-import functions as f
+import streamlit_webrtc as webrtc
 import cv2
-import os
-from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
 
 
-# Kelas VideoTransformer untuk merekam video dan menyimpan data tiap frame
-# Kelas VideoRecorder untuk merekam video dan menyimpannya
-class VideoRecorder(VideoTransformerBase):
-    def __init__(self, class_name):
-        self.class_name = class_name
-        self.video_output_dir = "videos/{}".format(self.class_name)
-        os.makedirs(self.video_output_dir, exist_ok=True)
-        self.video_writer = None
-
-    def transform(self, frame):
-        if self.video_writer is None:
-            frame_width = frame.shape[1]
-            frame_height = frame.shape[0]
-            self.video_writer = cv2.VideoWriter(
-                "{}/{}.avi".format(
-                    self.video_output_dir, len(os.listdir(self.video_output_dir))
-                ),
-                cv2.VideoWriter_fourcc(*"MJPG"),
-                30,
-                (frame_width, frame_height),
+def record_video(video_stream):
+    if video_stream.is_recording:
+        # Convert frames to OpenCV format
+        frame_images = [
+            frame.to_ndarray(format="bgr24") for frame in video_stream.frames
+        ]
+        if len(frame_images) > 0:
+            # Create a video writer to save the frames as an MP4 file
+            height, width, _ = frame_images[0].shape
+            video_writer = cv2.VideoWriter(
+                "recorded_video.mp4",
+                cv2.VideoWriter_fourcc(*"mp4v"),
+                30.0,
+                (width, height),
             )
-        # Simpan frame ke video
-        self.video_writer.write(frame)
-        return frame
-
-    def close(self):
-        if self.video_writer is not None:
-            self.video_writer.release()
-
-
-# TITLE
-st.markdown(
-    "<h1 style='text-align:center'>Teachable Machine</h1>",
-    unsafe_allow_html=True,
-)
-st.markdown(
-    "<h4 style='text-align:center'>Image Classification</h4>", unsafe_allow_html=True
-)
+            # Write frames to the video writer
+            for frame_image in frame_images:
+                video_writer.write(frame_image)
+            # Release the video writer
+            video_writer.release()
+            # Display a success message
+            st.success("Video recording saved as recorded_video.mp4")
 
 
 def main():
-    col1, col2, col3 = st.columns(3, gap="large")
+    st.title("MP4 Video Recorder")
 
-    # form input numclass
-    with col2:
-        total_class_input = st.number_input(
-            "Banyak Kelas",
-            key="data_num_class",
-            step=1,
-            # min_value=2,
-        )
-    st.markdown("<br><br><hr>", unsafe_allow_html=True)
+    # Create a video recorder using the streamlit-webrtc module
+    video_recorder = webrtc.VideoTransformer(
+        callback=record_video, mimeType="video/mp4"
+    )
 
-    if total_class_input > 1:
-        # try:
-        for i in range(total_class_input):
-            input_kelas = st.text_input(
-                "Kelas {}".format(i + 1),
-                placeholder="Nama Kelas",
-                key="class_input{}".format(i),
-            )
-            # Tambahkan form untuk merekam video menggunakan streamlit-webrtc
-            input_video = st.checkbox("Rekam Video", key="video_input{}".format(i))
-            if input_video:
-                col1, col2 = st.columns([1, 4])
-                video_transformer = VideoRecorder(input_kelas)
-                webrtc_ctx = webrtc_streamer(
-                    key="video-recorder-{}".format(i),
-                    video_transformer_factory=video_transformer,
-                    async_transform=True,
-                )
-                if webrtc_ctx.video_transformer:
-                    col1.video(webrtc_ctx.video_transformer)
-                if not webrtc_ctx.state.playing:
-                    video_transformer.close()
-                    st.success(
-                        "Video kelas {} telah direkam!".format(input_kelas),
-                        icon="✔️",
-                    )
-                    # Mengirim video ke backend untuk diolah
-                    # backend_result = f.process_video(video_transformer.video_output_dir)
-                    st.success(
-                        # "Hasil pengolahan video: {}".format(backend_result),
-                        icon="✔️",
-                    )
-            input_image = st.file_uploader(
-                "Input Gambar",
-                label_visibility="hidden",
-                accept_multiple_files=True,
-                key="image_input{}".format(i),
-                type=["jpg", "jpeg", "png"],
-            )
-            st.markdown("<hr>", unsafe_allow_html=True)
-        # ...
-
-        # except:
-        #     st.warning("Form Tidak boleh Kosong!", icon="⚠️")
-    else:
-        st.info("Minimal 2 Kelas", icon="ℹ️")
-
-    try:
-        if st.session_state.isModelTrained:
-            f.sidebar()
-            f.predictModel()
-    except:
-        # langkah langkah how to use teachable machine mulai dari persiapan data, training, dan prediksi
-        st.markdown("<br><hr><br>", unsafe_allow_html=True)
-        st.markdown(
-            "<h3 style='text-align:justify'>How to Use Teachable Machine?</h3>",
-            unsafe_allow_html=True,
-        )
+    # Display the video recorder
+    video_stream = video_recorder()
+    st.write(video_stream)
 
 
 if __name__ == "__main__":
     main()
+
+
+if __name__ == "__main__":
+    main()
+
+
+# TITLE
+# st.markdown(
+#     "<h1 style='text-align:center'>Teachable Machine</h1>",
+#     unsafe_allow_html=True,
+# )
+# st.markdown(
+#     "<h4 style='text-align:center'>Image Classification</h4>", unsafe_allow_html=True
+# )
+# webrtc to frame dataset
+# class VideoTransformer(VideoTransformerBase):
+#     def __init__(self) -> None:
+#         self.threshold = 0.5
+
+#     def transform(self, frame):
+#         img = frame.to_ndarray(format="bgr24")
+#         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+#         img = cv2.resize(img, (224, 224))
+#         img = img.astype("float32")
+#         img /= 255.0
+#         return img
+# import streamlit as st
+# import av
+# import numpy as np
+# import cv2
+# from streamlit_webrtc import VideoTransformerBase, webrtc_streamer
+
+# st.write("dataframe_video", dataframe_video)
+# webrtc_streamer(key="sample", video_transformer_factory=VideoTransformer)
+
+
+# def main():
+#     col1, col2, col3 = st.columns(3, gap="large")
+
+#     # form input numclass
+#     with col2:
+#         total_class_input = st.number_input(
+#             "Banyak Kelas",
+#             key="data_num_class",
+#             step=1,
+#             # min_value=2,
+#         )
+#     st.markdown("<br><br><hr>", unsafe_allow_html=True)
+
+#     if total_class_input > 1:
+#         # try:
+#         for i in range(total_class_input):
+#             input_kelas = st.text_input(
+#                 "Kelas {}".format(i + 1),
+#                 placeholder="Nama Kelas",
+#                 key="class_input{}".format(i),
+#             )
+#             # Tambahkan form untuk merekam video menggunakan streamlit-webrtc
+#             input_video = st.checkbox("Rekam Video", key="video_input{}".format(i))
+#             if input_video:
+#                 webrtc_streamer(
+#                     key="sample {}".format(i),
+
+#                     )
+
+#             input_image = st.file_uploader(
+#                 "Input Gambar",
+#                 label_visibility="hidden",
+#                 accept_multiple_files=True,
+#                 key="image_input{}".format(i),
+#                 type=["jpg", "jpeg", "png"],
+#             )
+#             st.markdown("<hr>", unsafe_allow_html=True)
+#         # ...
+
+#         # except:
+#         #     st.warning("Form Tidak boleh Kosong!", icon="⚠️")
+#     else:
+#         st.info("Minimal 2 Kelas", icon="ℹ️")
+
+#     try:
+#         if st.session_state.isModelTrained:
+#             f.sidebar()
+#             f.predictModel()
+#     except:
+#         # langkah langkah how to use teachable machine mulai dari persiapan data, training, dan prediksi
+#         st.markdown("<br><hr><br>", unsafe_allow_html=True)
+#         st.markdown(
+#             "<h3 style='text-align:justify'>How to Use Teachable Machine?</h3>",
+#             unsafe_allow_html=True,
+#         )
+
+
+# if __name__ == "__main__":
+#     main()
 
 # import cv2
 # import os

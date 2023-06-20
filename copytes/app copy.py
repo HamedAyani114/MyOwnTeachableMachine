@@ -1,6 +1,7 @@
 import streamlit as st
 import functions as f
 
+from streamlit_webrtc import webrtc_streamer
 
 # TITLE
 st.markdown(
