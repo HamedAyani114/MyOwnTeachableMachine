@@ -127,9 +127,10 @@ def get_ImagesClassForm():
 
     return data_images, class_images
 
+st.session_state.isModelTrained = False
+
 
 def trainingModel(epochs, batch_size):
-    st.session_state.isModelTrained = False
     epochs = epochs
     batch_size = batch_size
     global glob_input_kelas, glob_path_model, glob_str_kelas, glob_y_test_pred_class, globy_y_test_class
