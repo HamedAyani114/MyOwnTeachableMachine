@@ -127,9 +127,6 @@ def get_ImagesClassForm():
 
     return data_images, class_images
 
-st.session_state.isModelTrained = False
-
-
 def trainingModel(epochs, batch_size):
     epochs = epochs
     batch_size = batch_size

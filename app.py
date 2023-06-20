@@ -1,6 +1,8 @@
 import streamlit as st
 import functions as f
 
+st.session_state.isModelTrained = False
+
 
 def main():
     st.markdown(
