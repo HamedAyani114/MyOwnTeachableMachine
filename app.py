@@ -1,6 +1,7 @@
 import streamlit as st
 import functions as f
 
+
 def main():
     st.markdown(
         "<h1 style='text-align:center'>Teachable Machine</h1>", unsafe_allow_html=True
@@ -34,13 +35,13 @@ def main():
                     type=["jpg", "jpeg", "png"],
                 )
 
-                buttonvideo = st.button("Record", key="record_button{}".format(i))
-                if buttonvideo:
-                    recorded_frames = f.record_video(input_kelas)
-                    (
-                        st.session_state["recorded_frames{}".format(i)],
-                        st.session_state["recorded_class{}".format(i)],
-                    ) = recorded_frames
+                # buttonvideo = st.button("Record", key="record_button{}".format(i))
+                # if buttonvideo:
+                #     recorded_frames = f.record_video(input_kelas)
+                #     (
+                #         st.session_state["recorded_frames{}".format(i)],
+                #         st.session_state["recorded_class{}".format(i)],
+                #     ) = recorded_frames
                 st.markdown("<br><hr>", unsafe_allow_html=True)
 
             # training model
@@ -60,6 +61,7 @@ def main():
             st.warning("Form Tidak boleh Kosong!", icon="⚠️")
     else:
         st.info("Minimal 2 Kelas", icon="ℹ️")
+    print(st.session_state.isModelTrained)
     try:
         if st.session_state.isModelTrained:
             f.sidebar()
