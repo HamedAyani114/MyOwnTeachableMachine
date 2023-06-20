@@ -1,7 +1,9 @@
 import streamlit as st
 import functions as f
 
-st.session_state.isModelTrained = False
+if "isModelTrained" not in st.session_state:
+    st.session_state.isModelTrained = False
+    # st.session_state.count = 0
 
 
 def main():
@@ -63,9 +65,9 @@ def main():
             st.warning("Form Tidak boleh Kosong!", icon="⚠️")
     else:
         st.info("Minimal 2 Kelas", icon="ℹ️")
-    print(st.session_state.isModelTrained)
     try:
         if st.session_state.isModelTrained:
+            print(st.session_state.isModelTrained)
             f.sidebar()
             f.show_result()
     except:
