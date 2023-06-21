@@ -192,7 +192,7 @@ def trainingModel(epochs, batch_size):
             "Epoch: %d/%d - Training in progress... \ntrain loss: %.4f - train acc: %.3f \nval loss: %.4f - val acc: %.3f "
             % (epoch + 1, epochs, train_loss, train_acc, val_loss, val_acc)
         )
-        if train_loss < 0.005:
+        if train_loss < 0.005 or train_acc == 1.000:
             break
 
     # history model

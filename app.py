@@ -10,7 +10,7 @@ def main():
         "<h1 style='text-align:center'>Teachable Machine</h1>", unsafe_allow_html=True
     )
     st.markdown(
-        "<h4 style='text-align:center'>Image Classification</h4>",
+        "<h3 style='text-align:center'>Image Classification</h3>",
         unsafe_allow_html=True,
     )
 
@@ -25,9 +25,13 @@ def main():
     if total_class_input > 1:
         try:
             for i in range(total_class_input):
+                st.markdown(
+                    "<h4 style='text-align:center'>Kelas {}</h4>".format(i + 1),
+                    unsafe_allow_html=True,
+                )
                 col_kls, col_upload = st.columns(2)
                 input_kelas = col_kls.text_input(
-                    "Kelas {}".format(i + 1),
+                    "Label {}".format(i + 1),
                     placeholder="Nama Kelas",
                     key="class_input{}".format(i),
                 )
@@ -50,6 +54,7 @@ def main():
                         "Banyak sample diambil",
                         value=100,
                         min_value=10,
+                        step=10,
                         key="intrecord_button{}".format(i),
                     )
 
@@ -96,10 +101,71 @@ def main():
         f.sidebar()
         f.show_result()
     else:
-        # langkah langkah how to use teachable machine mulai dari persiapan data, training, dan prediksi
         st.markdown("<br><hr><br>", unsafe_allow_html=True)
         st.markdown(
             "<h3 style='text-align:justify'>How to Use Teachable Machine?</h3>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<h4 style='text-align:justify'>1. Persiapan Data</h4>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Masukkan jumlah kelas dari data (minimal 2 kelas)</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Masukkan nama kelas</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Upload Masukkan gambar untuk setiap kelas atau dapat juga menggunakan fitur record sample mengggunakan webcam</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<h4 style='text-align:justify'>2. Training</h4>",
+            unsafe_allow_html=True,
+        )
+        # tuning parameter
+        st.markdown(
+            "<p style='text-align:justify'>- Centang Tuning Parameter untuk mengubah nilai Epochs dan Batch Size</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Tekan tombol Train Model</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Tunggu hingga proses training selesai</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Confusion matrix tampil pada sidebar sebagai hasil evaluasi</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Model dapat di download pada sidebar</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<h4 style='text-align:justify'>3. Prediksi</h4>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Pilih gambar yang akan diprediksi atau dapat menggunakan fitur input gambar dari webcam</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Tekan tombol Predict</p>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:justify'>- Tunggu hingga proses prediksi selesai</p>",
+            unsafe_allow_html=True,
+        )
+        # hasil prediksi
+        st.markdown(
+            "<p style='text-align:justify'>- Hasil prediksi dan kemungkinan kelas dari input akan muncul </p>",
             unsafe_allow_html=True,
         )
 
