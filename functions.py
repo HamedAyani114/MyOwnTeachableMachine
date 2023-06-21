@@ -16,9 +16,9 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 le = LabelEncoder()
 
 
-def record_video(class_name):
+def record_video(input_kelas, count_recordframe):
     st.markdown(
-        "<h3>Capture Frame for Class: %s</h3>" % class_name,
+        "<h3>Capture Frame for Class: %s</h3>" % input_kelas,
         unsafe_allow_html=True,
     )
 
@@ -38,7 +38,7 @@ def record_video(class_name):
         frame = cv2.flip(frame, 1)
         cv2.putText(
             frame,
-            " Kelas: %s - Sample: %.f" % (class_name, temp),
+            " Kelas: %s - Sample: %.f" % (input_kelas, temp),
             (10, 20),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.5,
@@ -51,10 +51,10 @@ def record_video(class_name):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = cv2.resize(frame, (224, 224))
         frames.append(frame)
-        class_images.append(class_name)
+        class_images.append(input_kelas)
         time.sleep(shut_speed)
 
-        if cv2.waitKey(1) & 0xFF == ord("q"):
+        if cv2.waitKey(1) & 0xFF == ord("q") or temp == count_recordframe:
             start = False
 
     cv2.destroyAllWindows()
@@ -70,7 +70,7 @@ def record_video(class_name):
         unsafe_allow_html=True,
     )
     cap.release()
-    st.success("Frame Capture for Class: {}!".format(class_name), icon="✔️")
+    st.success("Frame Capture for Class: {}!".format(input_kelas), icon="✔️")
 
     # st.write(data_images.shape, class_images.shape)
     return data_images, class_images

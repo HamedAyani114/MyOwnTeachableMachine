@@ -57,10 +57,10 @@ import numpy as np
 np.set_printoptions(suppress=True)
 
 # Load the model
-model = load_model("keras_model.h5", compile=False)
+model = load_model("copytes/cp/keras_model.h5", compile=False)
 
 # Load the labels
-class_names = open("labels.txt", "r").readlines()
+class_names = open("copytes/cp/labels.txt", "r").readlines()
 
 # CAMERA can be 0 or 1 based on default camera of your computer
 camera = cv2.VideoCapture(0)

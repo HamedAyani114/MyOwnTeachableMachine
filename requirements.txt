@@ -2,7 +2,7 @@ scikit-learn
 tensorflow
 keras
 numpy
-# opencv-python
 matplotlib
+# opencv-python
 opencv-python-headless
 stqdm

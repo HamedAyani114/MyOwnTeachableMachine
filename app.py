@@ -19,18 +19,19 @@ def main():
         "Banyak Kelas", key="data_num_class", step=1, value=2
     )
 
-    st.markdown("<br><hr>", unsafe_allow_html=True)
+    st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
     # Form input class and video duration
     if total_class_input > 1:
         try:
             for i in range(total_class_input):
-                input_kelas = st.text_input(
+                col_kls, col_upload = st.columns(2)
+                input_kelas = col_kls.text_input(
                     "Kelas {}".format(i + 1),
                     placeholder="Nama Kelas",
                     key="class_input{}".format(i),
                 )
-                input_image = st.file_uploader(
+                input_image = col_upload.file_uploader(
                     "Input Gambar",
                     label_visibility="hidden",
                     accept_multiple_files=True,
@@ -38,14 +39,39 @@ def main():
                     type=["jpg", "jpeg", "png"],
                 )
 
-                buttonvideo = st.button("Record", key="record_button{}".format(i))
-                if buttonvideo:
-                    recorded_frames = f.record_video(input_kelas)
-                    (
-                        st.session_state["recorded_frames{}".format(i)],
-                        st.session_state["recorded_class{}".format(i)],
-                    ) = recorded_frames
-                st.markdown("<br><hr>", unsafe_allow_html=True)
+                # with kol1:
+                cb_record = st.checkbox(
+                    "Record sample Camera?", key="accrecord_button{}".format(i)
+                )
+
+                col_samp, col_rcrd = st.columns(2, gap="large")
+                if cb_record:
+                    count_recordframe = col_samp.number_input(
+                        "Banyak sample diambil",
+                        value=100,
+                        min_value=10,
+                        key="intrecord_button{}".format(i),
+                    )
+
+                    buttonrecord = col_rcrd.button(
+                        "Record Frame Sample", key="record_button{}".format(i)
+                    )
+
+                    if buttonrecord:
+                        if input_kelas:
+                            recorded_frames = f.record_video(
+                                input_kelas, count_recordframe
+                            )
+                            (
+                                st.session_state["recorded_frames{}".format(i)],
+                                st.session_state["recorded_class{}".format(i)],
+                            ) = recorded_frames
+                        else:
+                            st.warning(
+                                "Masukkan Nama kelas terlebih dahulu!", icon="⚠️"
+                            )
+
+                st.markdown("<br><hr><br>", unsafe_allow_html=True)
 
             # training model
             col1, col2, col3 = st.columns(3, gap="large")
