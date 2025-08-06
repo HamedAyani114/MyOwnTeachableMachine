@@ -342,5 +342,3 @@ def show_result():
     else:
         st.info("Masukkan Gambar untuk prediksi", icon="ℹ️")
 
-
-st.cache_resource(suppress_st_warning=True)
